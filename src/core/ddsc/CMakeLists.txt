@@ -10,6 +10,20 @@
 # SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
 #
 
+option(TRACING_ENABLED "Enable static tracepoints with LTTng." ON)
+if (TRACING_ENABLED AND CMAKE_SYSTEM_NAME MATCHES Linux)
+  find_package(PkgConfig)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(LTTNG lttng-ust)
+    if(LTTNG_FOUND)
+      message("LTTng found: tracing enabled")
+      set(LTTNG_ENABLED ON)
+    else()
+      message(ERROR "LTTng NOT found!")
+    endif()
+  endif()
+endif()
+
 prepend(srcs_ddsc "${CMAKE_CURRENT_LIST_DIR}/src/"
   dds_alloc.c
   dds_builtin.c
@@ -47,6 +61,10 @@ if (DDS_HAS_SHM)
   list(APPEND srcs_ddsc "${CMAKE_CURRENT_LIST_DIR}/src/shm_monitor.c")
 endif()
 
+if (LTTNG_ENABLED)
+  list(APPEND srcs_ddsc "${CMAKE_CURRENT_LIST_DIR}/src/tracing_lttng.c")
+endif()
+
 prepend(hdrs_private_ddsc "${CMAKE_CURRENT_LIST_DIR}/src/"
   dds__alloc.h
   dds__builtin.h
@@ -74,6 +92,10 @@ prepend(hdrs_private_ddsc "${CMAKE_CURRENT_LIST_DIR}/src/"
   dds__serdata_builtintopic.h
   dds__get_status.h
   dds__data_allocator.h)
+
+if (LTTNG_ENABLED)
+  list(APPEND hdrs_private_ddsc "${CMAKE_CURRENT_LIST_DIR}/src/tracing_lttng.h")
+endif()
 
 prepend(hdrs_public_ddsc "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>$<INSTALL_INTERFACE:include>/dds/"
   dds.h
@@ -114,6 +136,10 @@ target_include_directories(ddsc
     "${CMAKE_CURRENT_LIST_DIR}/src"
   INTERFACE
     $<INSTALL_INTERFACE:include>)
+
+if (LTTNG_ENABLED)
+  target_link_libraries(ddsc PRIVATE ${LTTNG_LIBRARIES} "-rdynamic")
+endif()
 
 install(
   DIRECTORY

@@ -26,6 +26,7 @@
 #include "dds/ddsi/q_radmin.h"
 #include "dds/ddsi/ddsi_domaingv.h"
 #include "dds/ddsi/ddsi_deliver_locally.h"
+#include "tracing_lttng.h"
 
 #ifdef DDS_HAS_SHM
 #include "dds/ddsi/shm_sync.h"
@@ -125,6 +126,7 @@ dds_return_t dds_write (dds_entity_t writer, const void *data)
 
   if ((ret = dds_writer_lock (writer, &wr)) != DDS_RETCODE_OK)
     return ret;
+  TRACEPOINT(write, (const void *)wr, data);
   ret = dds_write_impl (wr, data, dds_time (), 0);
   dds_writer_unlock (wr);
   return ret;
